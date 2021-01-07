@@ -2,6 +2,7 @@
 <html lang="en" charset="utf-8">
 <head>
 	<title>Mapping with D3</title>
+	<meta charset = "utf-8">
 	<script src="https://d3js.org/d3.v6.min.js" charset="utf-8"></script>
 	<script src="https://d3js.org/topojson.v1.min.js"></script>
 </head>
@@ -48,13 +49,13 @@
 			.attr( "width", width )
 			.attr( "height", height );
 
-			let g = svg.append( "g" );
+			let g = svg.append("g");
 			g.selectAll( "path" )
 			.data(ca_counties.features)
 			.enter()
-			.append( "path" )
-			.attr( "fill", "#ccc" )
-			.attr( "stroke", "#333")
+			.append("path")
+			.attr("fill", "#ccc" )
+			.attr("stroke", "#333")
 			.attr("d", ca_geoPath); 
 
 			svg.node();
