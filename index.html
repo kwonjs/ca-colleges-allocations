@@ -1,0 +1,408 @@
+<!--Base HTML framework taken from "https://www.d3-graph-gallery.com/graph/backgroundmap_country.html". All credit goes to Yan Holtz.-->
+
+<!--Full tutorial on how to construct a d3 bubble map here: "https://www.d3-graph-gallery.com/bubblemap.html". All credit goes to Yan Holtz. --> 
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+	<!-- Load d3.js -->
+	<script src="https://d3js.org/d3.v4.js"></script>
+	<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+	<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+	<!-- Bootstrap: CSS only -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+</head>
+
+<body>
+
+	<style>
+
+		html {
+			font-family: "Tahoma", sans-serif;
+			font-size: 15px;
+		}
+
+		h1 {
+			font-size: 30px;
+			text-align: center;
+		}
+
+		.header {
+			text-align: center;
+			padding-bottom: 20px;
+			padding-top: 20px;
+		}
+
+		#caption {
+			font-size: 20px;
+		}
+
+		circle:hover {
+			stroke: "black";
+			stroke-width: 2.5px;
+		}
+
+		input.label {
+			margin-right: 5px;
+		}
+
+		/*for accessibility purposes - guide from: https://www.a11ymatters.com/pattern/checkbox/*/
+
+		.sr-only {
+			position: absolute;
+			clip: rect(1px, 1px, 1px, 1px);
+			padding: 0;
+			border: 0;
+			height: 1px;
+			width: 1px;
+			overflow: hidden;
+		}
+
+		.c-checkbox {
+			margin-bottom: 2em;
+		}
+
+		.c-checkbox__label {
+			margin-right: 2em;
+		}
+
+		.c-checkbox__label:before {
+			content: "";
+			display: inline-block;
+			vertical-align: middle;
+			width: 2em;
+			height: 2em;
+			border: 2px solid gray;
+			border-radius: 6px;
+			margin-right: 5px;
+		}
+
+		.c-checkbox input:checked + .c-checkbox__label:before {
+			border-color: #43bf3f;
+			background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Icons8_flat_checkmark.svg/768px-Icons8_flat_checkmark.svg.png') center/2em no-repeat;
+		}
+
+
+		.c-checkbox input:focus + .c-checkbox__label {
+			outline: dashed 2px lightgrey;
+			outline-offset: 5px;
+		}
+
+		.c-checkbox input:focus:not(:focus-visible) {
+			outline: none;
+		}
+
+		a:focus {
+			outline: dashed 2px lightgrey;
+			outline-offset: 5px;
+		}
+
+		a input:focus:not(:focus-visible) {
+			outline: none;
+		}
+
+		button {
+			margin-right: 1em;
+			margin-bottom: 30px;
+		}
+
+		/*button.btn-bayarea {
+			background-color: #24a4b5;
+			border-color:  #24a4b5;
+		}
+
+		button.btn-bayarea:hover {
+			background-color: #147380;
+			border-color: #147380;
+		}
+
+		button.btn-bayarea:focus {
+			background-color: #147380;
+			border-color:  black;
+			border-width: 3px;
+			outline: dashed 2px lightgrey;
+			outline-offset: 5px;
+		}
+
+		button.btn-socal {
+			background-color: #cc8c00;
+			border-color:  #cc8c00;
+		}
+
+		button.btn-socal:hover {
+			background-color: #734f00;
+			border-color: #734f00;
+		}
+
+		button.btn-socal:focus {
+			background-color: #734f00;
+			border-color:  black;
+			border-width: 3px;
+			outline: dashed 2px lightgrey;
+			outline-offset: 5px;
+		}*/
+
+		button.btn-reset {
+			background-color: #9e9e9e;
+			border-color: #9e9e9e;
+		}
+
+		button.btn-reset:hover {
+			background-color: #595959;
+			border-color: #595959;
+		}
+
+		button.btn-reset:focus {
+			background-color: #595959;
+			/*border-color:  black;
+			border-width: 3px;*/
+			outline: dashed 2px lightgrey;
+			outline-offset: 5px;
+		}
+
+		.end {
+			padding-top: 20px;
+			padding-bottom: 20px;
+			text-align: center;
+		}
+
+	</style>
+
+	<div class = "container">
+		
+		<div class = "header">
+			<h1>COVID-19 Allocations to Higher Education Institutions in California</h1>
+
+			<p id = "caption"><i>An interactive bubble map of CARES Act allocations to colleges and universities across California</i></p>
+
+			<p style = "font-size: 15px; color: red;">Note: This piece is currently <strong>in-progress</strong>. I am currently working on fixing the zoom functionality of this graphic. I am always looking for ways to make my visualizations more web and keyboard-accessible - please reach out to me at <a href = "https://twitter.com/kwonjs_dc">@kwonjs_dc</a> if you have any suggestions!</p>
+		</div>
+
+		<div class = "row">
+			<!-- diff buttons via category -->
+			<div class = "col">
+				<h4 style = "margin-bottom: 0.5em;"> Type of School:</h4>
+				<p style = "font-size: 15px; color: gray; padding-bottom: 15px;">Click on the checkboxes (or use the tab button to select and the space bar to toggle them) to display only public or private schools. </p>
+
+				<div class = "c-checkbox">
+					<input id = "publicbtn" type="checkbox" class="checkbox sr-only" value="Public" checked><label class = "c-checkbox__label" for = "publicbtn"> Public (in yellow)</label>
+					<input id = "privatebtn" type="checkbox" class="checkbox sr-only" value="Private" checked><label class = "c-checkbox__label" for = "privatebtn"> Private (in dark blue) </label>
+				</div>
+				<!--Types: >2-year, 2-year, 4-year, Public, Private not-for-profit, Private for-profit-->
+				
+				<!--<h4 style = "margin-top: 1em; margin-bottom: 0.5em;"> Zoom in:</h4>
+				<button type="button" class="zoom btn-bayarea btn btn-primary btn-lg" value = "BayArea" onclick = zoomIn()><i class="bi bi-zoom-in"></i> Bay Area </button>
+				<button type="button" class="zoom btn-socal btn btn-primary btn-lg" value = "SoCal" onclick = zoomIn()><i class="bi bi-zoom-in"></i> SoCal (Southern California)</button>
+				<button type="button" class="zoom btn-reset btn btn-primary btn-lg" onclick = zoomIn()> Reset </button>-->
+
+				<!-- Create an element where the map will take place -->
+				<svg id="california" width="600" height="600"></svg>
+
+				<p style = "text-align: center; font-size: 12px;"><a href = "https://docs.google.com/spreadsheets/d/1gUyuLSxhs5Z8n49o2PZIiFhyp2MJV2SZxhk06q2RZHQ/edit?usp=sharing"><i>Click here to view the dataset.</i></a></p>
+
+			</div>
+			<div class = "col">
+				<p>On March 27, 2020, the Coronavirus Aid, Relief, and Economic Security (CARES Act) was signed into law. Over $12 billion* were allocated to higher education institutes across the U.S., with <a href = "https://www.americanprogress.org/issues/education-postsecondary/news/2020/07/01/487174/much-money-college-can-receive-cares-act/">more than $1 billion awarded to minority-serving institutions and low-resourced colleges.</a></p>
+
+				<p>The bubble map to the left was created by joining data from the <a href = "data from the U.S. Department of Education">U.S. Dept. of Education</a> and university data from the <a href = "https://nces.ed.gov/collegenavigator/">National Center for Education Statistics' College Navigator</a>. Institutions found in the College Navigator that are not found in the allocations dataset from the U.S. Dept. of Education <strong>are not displayed</strong> on the bubble map.<p>
+
+				<p>According to Inside Higher Ed and American Progress, the majority of funding each institution receives is calculated using a complex formula weighted toward institutions that enroll large numbers of students who <a href = "https://www.insidehighered.com/news/2020/04/10/listing-funds-each-college-can-expect-receive-under-federal-stimulus">qualify for Pell Grants</a>. Three-fourths of funds depend on the national percentage of Pell Grant students each institution has, while the other one-fourth depends on each  institution's national percentage of non-Pell Grant recipients.</p>
+
+				<p>Both populations, however, only accounted for <a href = "https://www.americanprogress.org/issues/education-postsecondary/reports/2020/05/11/484838/better-formula-higher-educations-federal-coronavirus-funding/">full-time equivalent enrollment</a>. Under this formula, a college with more part-time students who took one or two courses received less funding than colleges with more students who had full courseloads. Due to the design of this formula, federal aid to higher institutions <a href = "https://www.insidehighered.com/news/2020/04/23/community-colleges-regional-publics-lost-formula-cares-act-funds">disproportionally left out community colleges</a>, crucial institutions that increase higher education access to millions of students.</a></p>
+
+				<p style = "font-size: 10px;">* Reported amounts of funding range between over 12 billion and under 14 billion.</p>
+
+				<h4>Ideas for future data analyses:</h4>
+				<ul>
+					<li>Map allocations in other states besides California</li>
+					<li>Compare the percentage of allocations each university received out of allocations in the whole state with the percentage of students who qualify and have Pell Grants</li>
+					<li>Investigate more into how much federal coronavirus aid or other funding to community colleges across the U.S. by state</li>
+				</ul>
+			</div>
+			<p class = "end"><i>Created with love by <a href = "https://kwonseoyoung.webflow.io">Jenny Seoyoung Kwon</a></i></p>
+		</div>
+	</div>
+
+	<script>
+
+	// The svg
+	var svg = d3.select("svg"),
+	    width = +svg.attr("width"),
+	    height = +svg.attr("height");
+
+
+
+	// Map and projection
+	var projection = d3.geoMercator()
+	    .center([-120, 37]) // long, then lat. france is (2, 47) or 47, 2 on google maps. center for whole map: (-120, 37). center in LA county + san diego: (-118, 33). center in san mateo county: (-122, 37).    
+	    .scale(2500)  // scale orig at 980. scale for whole map: 2500. zoom for san diego + LA, bay area: 6000                  
+	    .translate([ width / 2, height / 2 ]);
+
+    // Add a scale for bubble size
+    var size = d3.scaleSqrt()
+      .domain([1, 100])  // What's in the data
+      .range([4, 50]);  // Size in pixel
+
+    // Create a color scale
+	// var color = d3.scaleOrdinal()
+		//.domain(["4-year, Public", "4-year, Private not-for-profit", "4-year, Private for-profit" ])
+		//.range([ "#ffea80", "#b1f2f1", "#6895c4"])
+
+	var ca = svg
+		.call(d3.zoom()
+			.scaleExtent([1, 3])
+			.on("zoom", function () {
+		svg.attr("transform", d3.event.transform)
+		})).append("g");
+	var allocations = svg.append("g"); // distinguish layers of data
+
+	// create a tooltip
+	var Tooltip = d3.select("body") // note: append tooltip to BODY, not svg
+		.append("div")
+		.attr("class", "tooltip")
+			.style("opacity", 1)
+			.style("position", "absolute") // tooltip appears when you hover over the svg
+			.style("background-color", "white")
+			.style("border", "solid")
+			.style("border-width", "1.5px")
+			.style("border-radius", "1px")
+			.style("padding", "5px");
+
+	// change the tooltip when user hover / move / leave a cell
+	var mouseover = function(d) {
+			Tooltip.style("opacity", 1)
+		}
+
+	// styling the tooltip
+	var mousemove = function(d) { 
+			Tooltip.html("<strong>" + d.properties.school + "</strong>" + "<br>" + "Type: " + d.properties.type1 + ", " + d.properties.type2 + "<br>" + "Total Allocation ($): " + d.properties.totallocation + "<br>" + "Student Population: " + d.properties.stupop + "<br>" + "Undergraduate Population: " + d.properties.undergradpop)
+			.style("left", (d3.mouse(this)[0]+10) + "px")
+			.style("top", (d3.mouse(this)[1]) + "px")
+		}
+
+	var mouseleave = function(d) {
+			Tooltip.style("opacity", 0)
+		}
+
+	// data for basemap
+	d3.json("https://gist.githubusercontent.com/threestory/ed0f322d7bb2e3be8ded/raw/2aa8df2f15817985c60b67d726e6d13197e8ffb6/cb_2014_us_county_5m.json", function(data){
+
+	    // Draw the map
+	    ca.selectAll("path")
+	        .data(data.features)
+	        .enter()
+	        .append("path")
+	          .attr("fill", "#bef0f7")
+	          .attr("d", d3.geoPath()
+	              .projection(projection)
+	          )
+	        .style("stroke", "white");
+
+	})
+
+	// zooming in to either the bay area or socal
+	/*var zoomIn = function() {
+		d3.selectAll("button").each(function(d) {
+			btn = d3.select(this);
+
+			if (btn.property("value")=="BayArea") {
+				projection
+				.attr("center",[-122, 37])
+				.attr("scale", 6000)
+				.reload();
+			}
+
+			if (btn.property("value")=="SoCal") {
+				projection
+				.attr("center",[-118, 33])
+				.attr("scale", 6000)
+				.reload();
+			}
+
+			else {
+				projection
+				.attr("center", [-120, 37])
+				.attr("scale", 2500);
+			}
+
+		})
+	}
+
+	zoomIn()*/
+
+	// data for allocations to each college
+	d3.json("https://raw.githubusercontent.com/kwonjs/ca-colleges-allocations/main/allocations_california_colleges_divided.geojson", function(data){
+
+		// remove this section - unnecessary
+	    /*allocations.selectAll("path")
+	    	.data(data.features)
+	    	.enter()
+	    	.append("path")
+	    		.attr("fill", "#8cbeed")
+	    		.attr("stroke", "#6697c4")
+	    		.attr("fill-opacity", .8)
+	    		.attr("d", d3.geoPath()
+	    			.projection(projection)
+	        )*/
+	
+			allocations.attr("class", "bubble")
+			.selectAll("circle")
+			.data(data.features) // features.sort(function(a, b) { return b.properties.totallocation - a.properties.totallocation })
+			.enter()
+			.append("circle")
+				.attr("class", function(d) { return d.properties.type2 }) // class is Public or Private nonprofit or Private forprofit
+				.attr("cx", function(d){ return projection([d.geometry.coordinates[0], d.geometry.coordinates[1]])[0] })
+				.attr("cy", function(d){ return projection([d.geometry.coordinates[0], d.geometry.coordinates[1]])[1] })
+				.attr("r", function(d){ return size(d.properties.totallocation / 1000000)})
+				.attr("fill", "#fad766") // to add color based on color scale: function(d){ return color(d.properties.type) } (make sure to use .style instead of .attr)
+				.attr("stroke", "black")
+				.attr("stroke-width", 0.3)
+				.attr("fill-opacity", .5)
+				.on("mouseover", mouseover)
+				.on("mousemove", mousemove)
+				.on("mouseleave", mouseleave)
+
+			// This function will change the opacity and size of selected and unselected circles
+		    function update(){
+
+		    	// For each check box:
+		    	d3.selectAll(".checkbox").each(function(d) {
+		        cb = d3.select(this);
+
+		        if (cb.property("value")=="Public") {
+		        	if (cb.property("checked")) // If the box is checked and the value is "Public", show the Public Universities
+		        	{
+		        		allocations.selectAll("circle[class=Public]").transition().duration(1000).style("opacity", 1).attr("r", function(d){ return size(d.properties.totallocation / 1000000) }) // attr("class", "bubble").selectAll("circle").data(d.properties.type2)
+		        	}
+		        // Otherwise, hide it
+		        else {
+		          allocations.selectAll("circle[class=Public]").transition().duration(1000).style("opacity", 0).attr("r", 0)
+		        }
+		      }
+
+		      if (cb.property("value")=="Private") {
+		        	if (cb.property("checked")) // If the box is checked and the value is "Private (either for or not for profit", show the Private Universities 
+		        	{
+		        		allocations.selectAll("circle[class^=Private]").transition().duration(1000).style("opacity", 1).attr("fill", "#346beb").attr("stroke", "#1b2d57").attr("stroke-width", 0.3).attr("fill-opacity", .3).attr("r", function(d){ return size(d.properties.totallocation / 1000000) })
+		        	}
+
+		        	else {
+		        		allocations.selectAll("circle[class^=Private]").transition().duration(1000).style("opacity", 0).attr("r", 0)
+		        	}
+		        }
+		  })
+		}
+
+		// When a button changes, I run the update function
+		d3.selectAll(".checkbox").on("change", update);
+
+		// And I initialize it at the beginning
+		update()
+	})
+
+	</script>
+
+
+</body>
